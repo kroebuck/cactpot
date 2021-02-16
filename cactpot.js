@@ -78,17 +78,44 @@ class CactpotBoard {
 
 	score(lineChoice) {
 		let score = 0;
-		let emptyPosCount = 0;
+		let emptyPosCount = 0; // track number of unrevealed positions for score prediction
 
 		switch(lineChoice) {
+			// diagonals
 			case 0:
+				for (i = 0; i < 3; i++) {
+					let pos = this.boardLength * i + i;
+					if (this.playerBoard[pos] == 0) {
+						emptyPosCount += 1;
+					}
+					score += this.board[pos];
+				}
+				break
 			case 4:
-				console.log("diagonal");
+				for (i = 0; i < 3; i++) {
+					let pos = this.boardLength * (i + 1) - i - 1;
+					if (this.playerBoard[pos] == 0) {
+						emptyPosCount += 1;
+					}
+					score += this.board[pos];
+				}
 				break
 			case 1:
+				let j = 0;
 			case 2:
+				j = 1;
+				console.log(j);
+				break
 			case 3:
-				console.log("column");
+				j = 2;
+				console.log(j);
+				for (i = 0; i < 3; i++) {
+					let pos = this.boardLength * j + i;
+					if (this.playerBoard[pos] == 0) {
+						emptyPosCount += 1;
+					}
+					score += this.board[pos];
+				}
 				break
 			case 5:
 			case 6:
@@ -178,7 +205,7 @@ function drawBoard() {
 	let initX = 100, initY = 100, rad = 50
 
 	// Draw arrows to choose lines for scoring
-	context.fillStyle = "Red";
+	context.fillStyle = "Blue";
 	centerY = initY;
 	for (i = 0; i < 5; i++) {
 		context.beginPath();
@@ -189,7 +216,6 @@ function drawBoard() {
 
 	centerX = initX;
 	for (i = 1; i < 4; i++) {
-		context.fillStyle = "Red";
 		context.beginPath();
 		let centerY = (1 + 1.5 * i) * initY;
 		context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
