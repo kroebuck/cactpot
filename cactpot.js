@@ -1,4 +1,4 @@
-let canvas, context, game, loc, lineChoice;
+let canvas, context, game, loc;
 
 class CactpotBoard {
 	constructor() {
@@ -76,53 +76,59 @@ class CactpotBoard {
 		}
 	}
 
-	score(lineChoice) {
-		let score = 0;
+	scoreCalc(line) {
+		let sum = 0;
 		let emptyPosCount = 0; // track number of unrevealed positions for score prediction
+		var pos;
 
-		switch(lineChoice) {
-			// diagonals
-			case 0:
-				for (i = 0; i < 3; i++) {
-					let pos = this.boardLength * i + i;
-					if (this.playerBoard[pos] == 0) {
-						emptyPosCount += 1;
-					}
-					score += this.board[pos];
+		// diagonal (top-left to bottom-right)
+		if (line == 0) {
+			for (i = 0; i < 3; i++) {
+				pos = this.boardLength * i + i;
+				if (this.playerBoard[pos] == 0) {
+					emptyPosCount += 1;
 				}
-				break
-			case 4:
-				for (i = 0; i < 3; i++) {
-					let pos = this.boardLength * (i + 1) - i - 1;
-					if (this.playerBoard[pos] == 0) {
-						emptyPosCount += 1;
-					}
-					score += this.board[pos];
-				}
-				break
-			case 1:
-				let j = 0;
-			case 2:
-				j = 1;
-				console.log(j);
-				break
-			case 3:
-				j = 2;
-				console.log(j);
-				for (i = 0; i < 3; i++) {
-					let pos = this.boardLength * j + i;
-					if (this.playerBoard[pos] == 0) {
-						emptyPosCount += 1;
-					}
-					score += this.board[pos];
-				}
-				break
-			case 5:
-			case 6:
-			case 7:
-				console.log("row");
-
+				sum += this.board[pos];
+			}
 		}
+
+		// diagonal (top-right to bottom-left)
+		if (line == 4) {
+		for (i = 0; i < 3; i++) {
+				pos = this.boardLength * (i + 1) - i - 1;
+				if (this.playerBoard[pos] == 0) {
+					emptyPosCount += 1;
+				}
+				sum += this.board[pos];
+			}
+		}
+		
+		// columns
+		if (0 < line && line < 4) {
+			let i = line - 1; // corresponds to which column it is
+			for (j = 0; j < 3; j++) {
+				pos = i + this.boardLength * j;
+				if (this.playerBoard[pos] == 0) {
+					emptyPosCount += 1;
+				}
+				sum += this.board[pos];
+			}
+		}
+
+		// rows
+		if (4 < line) {
+			let j = line - 5; // corresponds to which row it is
+			for (i = 0; i < 3; i++) {
+				pos = this.boardLength * j + i;
+				console.log("pos", pos);
+				if (this.playerBoard[pos] == 0) {
+					emptyPosCount += 1;
+				}
+				sum += this.board[pos];
+			}
+		}
+
+		return {'score': sum, 'emptyPosCount': emptyPosCount};
 	}
 }
 
@@ -160,6 +166,8 @@ function mouseDownHandler(event) {
 
 function checkBoardInteract(posX, posY) {
 	let initX = 100, initY = 100, rad = 50;
+	var lineChoice = null;
+	var loc = null;
 
 	// Check if click is on a line selector
 	centerY = initY;
@@ -168,7 +176,7 @@ function checkBoardInteract(posX, posY) {
 		let relX = posX - centerX, relY = posY - centerY;
 	    let dist = Math.sqrt(relX * relX + relY * relY);
 	    if (dist < rad) {
-	    	lineChoice = i;
+	    	lineChoice = i + 1;
 	    }
 	}
 
@@ -178,7 +186,7 @@ function checkBoardInteract(posX, posY) {
 		let relX = posX - centerX, relY = posY - centerY;
 	    let dist = Math.sqrt(relX * relX + relY * relY);
 	    if (dist < rad) {
-	    	lineChoice = 4 + j;
+	    	lineChoice = 5 + i;
 	    }
 	}
 
@@ -189,15 +197,21 @@ function checkBoardInteract(posX, posY) {
 		    let relX = posX - centerX, relY = posY - centerY;
 		    let dist = Math.sqrt(relX * relX + relY * relY);
 		    if (dist < rad) {
-		    	loc = 3 * j + i;
+		    	loc = 3 * j + i + 1;
 				console.log("loc: ", loc);
 		    }
 		}
 	}
 
-	game.numberReveal(loc);
-	if (game.revealed > 3) {
-		game.score(lineChoice);
+	if(lineChoice != null) {
+		if (game.revealed > 3) {
+			console.log("lc", lineChoice-1)
+			let userScore = game.scoreCalc(lineChoice - 1).score;
+			console.log("score:", userScore);
+		}
+	} else if (loc != null) {
+		console.log("loc", loc);
+		game.numberReveal(loc - 1);
 	}
 }
 
