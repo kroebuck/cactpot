@@ -59,9 +59,9 @@ class CactpotBoard {
 		let initX = 100, initY = 100;
 		let locX = (1 + 1.5 * (i+1)) * initX - 12, locY = (1 + 1.5 * (j+1)) * initY + 15;
 
-		context.fillStyle = "Green";
+		context.fillStyle = "#000000";
 		context.font = "45px Arial";
-		var num = context.fillText(this.playerBoard[position], locX, locY)
+		var num = context.fillText(this.board[position], locX, locY);
 	}
 
 	numberReveal(position) {
@@ -208,6 +208,11 @@ function checkBoardInteract(posX, posY) {
 			console.log("lc", lineChoice-1)
 			let userScore = game.scoreCalc(lineChoice - 1).score;
 			console.log("score:", userScore);
+			for (i = 0; i < game.boxTotal; i++) {
+				if (game.playerBoard[i] == 0) {
+					game.drawNumber(i);
+				}
+			}
 		}
 	} else if (loc != null) {
 		console.log("loc", loc);
@@ -216,7 +221,7 @@ function checkBoardInteract(posX, posY) {
 }
 
 function drawBoard() {
-	let initX = 100, initY = 100, rad = 50
+	let initX = 100, initY = 100, rad = 50;
 
 	// Draw arrows to choose lines for scoring
 	context.fillStyle = "Blue";
@@ -237,7 +242,7 @@ function drawBoard() {
 	}
 
 	// Draw board of values
-	context.fillStyle = "#000000";
+	context.fillStyle = "#e3c34f";
 	for (i = 1; i < 4; i++) {
 		for (j = 1; j < 4; j++) {
 		    context.beginPath();
@@ -246,5 +251,79 @@ function drawBoard() {
 		    context.fill();
 		}
 	}
+
+	context.fillStyle = "#f7e8b2";
+	for (i = 1; i < 4; i++) {
+		for (j = 1; j < 4; j++) {
+		    context.beginPath();
+		    let centerX = (1 + 1.5 * i) * initX, centerY = (1 + 1.5 * j) * initY; // coords of circle centers
+		    context.arc(centerX, centerY, 0.9*rad, 0, 2 * Math.PI);
+		    context.fill();
+		}
+	}
+}
+
+function drawLineBG(line) {
+	let initX = 100, initY = 100, rad = 50;
+	var pos = null, i = null, j = null;
+	context.fillStyle = "#5edcff";
+
+	// for (i = 1; i < 4; i++) {
+	// 	for (j = 1; j < 4; j++) {
+	// 	    context.beginPath();
+	// 	    let centerX = (1 + 1.5 * i) * initX, centerY = (1 + 1.5 * j) * initY; // coords of circle centers
+	// 	    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
+	// 	    context.fill();
+	// 	}
+	// }
+
+		// diagonal (top-left to bottom-right)
+	if (line == 0) {
+		for (i = 0; i < 3; i++) {
+			pos = this.boardLength * i + i;
+			i = position % 3;
+			j = Math.floor(position/3);
+			context.beginPath();
+		    let centerX = (1 + 1.5 * (i+1)) * initX, centerY = (1 + 1.5 * (j+1)) * initY; // coords of circle centers
+		    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
+		    context.fill();
+		}
+	}
+
+	// // diagonal (top-right to bottom-left)
+	// if (line == 4) {
+	// for (i = 0; i < 3; i++) {
+	// 		pos = this.boardLength * (i + 1) - i - 1;
+	// 		if (this.playerBoard[pos] == 0) {
+	// 			emptyPosCount += 1;
+	// 		}
+	// 		sum += this.board[pos];
+	// 	}
+	// }
+	
+	// // columns
+	// if (0 < line && line < 4) {
+	// 	let i = line - 1; // corresponds to which column it is
+	// 	for (j = 0; j < 3; j++) {
+	// 		pos = i + this.boardLength * j;
+	// 		if (this.playerBoard[pos] == 0) {
+	// 			emptyPosCount += 1;
+	// 		}
+	// 		sum += this.board[pos];
+	// 	}
+	// }
+
+	// // rows
+	// if (4 < line) {
+	// 	let j = line - 5; // corresponds to which row it is
+	// 	for (i = 0; i < 3; i++) {
+	// 		pos = this.boardLength * j + i;
+	// 		console.log("pos", pos);
+	// 		if (this.playerBoard[pos] == 0) {
+	// 			emptyPosCount += 1;
+	// 		}
+	// 		sum += this.board[pos];
+	// 	}
+	// }
 
 }
