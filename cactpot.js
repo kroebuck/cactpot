@@ -32,6 +32,7 @@ class CactpotBoard {
 		this.revealed = 0;
 		this.firstBox = null;
 		this.startGame();
+		this.nextRevealScore = Array(this.boxTotal).fill(0);
 	}
 
 	setup() {
@@ -142,26 +143,71 @@ class CactpotBoard {
 		let revealedSum = null;
 		let emptyPosCount = null;
 		let currentVal = 0;
-		let maxVal = 0;
-		let maxIndex = 0;
+		let pos = null;
+		let maxLineVal = 0;
+		let maxLineIndex = 0;
+		let maxBoxVal = 0;
+		let maxBoxIndex = 0;
 
 		for (let k = 0; k < 8; k++) {
 			revealedSum = this.scoreCalc(k).playerSum;
 			emptyPosCount = this.scoreCalc(k).emptyPosCount;
 			currentVal = this.lineValue(revealedSum, emptyPosCount);
-			if (currentVal > maxVal) {
-				maxVal = currentVal;
-				maxIndex = k;
+
+			if (k == 0) {
+				for (i = 0; i < 3; i++) {
+					pos = this.boardLength * i + i
+					this.nextRevealScore[pos] += currentVal;
+				}
+			} else if (0 < k && k < 4) {
+				i = k - 1; // column number (0-2)
+				for  (j = 0; j < 3; j++) {
+					pos = this.boardLength * j + i;
+					this.nextRevealScore[pos] += currentVal;
+				}
+			} else if (k == 4) {
+				for (i = 0; i < 3; i++) {
+					pos = this.boardLength * (i + 1) - i - 1;
+					this.nextRevealScore[pos] += currentVal;
+				}
+			} else if (4 < k) {
+				j = k - 5; // row number (0-2)
+				for (i = 0; i < 3; i++) {
+					pos = this.boardLength * j + i;
+					this.nextRevealScore[pos] += currentVal;
+				}
+			}
+
+			if (currentVal > maxLineVal) {
+				maxLineVal = currentVal;
+				maxLineIndex = k;
 			}
 		}
 
-		console.log("The best line choice is:", maxIndex);
+		// Find which box is the best to uncover next, or say which line is best
+		if (this.revealed < 4) {
+			for (i = 0; i < this.nextRevealScore.length; i++) {
+				// console.log("pos, score", i+1, this.nextRevealScore[i]);
+				if (this.nextRevealScore[i] > maxBoxVal) {
+					if (this.playerBoard[i] == 0) {
+						maxBoxVal = this.nextRevealScore[i];
+						maxBoxIndex = i;
+					}
+				}
+			}
+			console.log("The best box to reveal is", maxBoxIndex + 1);
+		} else {
+			console.log("The best line choice is:", maxLineIndex);
+		}
+
+		return {'boxSuggest': maxBoxIndex, 'lineSuggest': maxLineIndex};
 	}
 
 	lineValue(initSum, emptyCount) {
 		let totalScore = 0;
 		var tempSum;
 		let length = this.remaining.length;
+		let probabilityMass = 1;
 
 		if (emptyCount == 0) {
 			totalScore = this.payout(initSum);
@@ -177,6 +223,7 @@ class CactpotBoard {
 					if (i < j) {
 						tempSum = initSum + this.remaining[i] + this.remaining[j];
 						totalScore += this.payout(tempSum);
+						probabilityMass = 2 / length / (length - 1);
 					}
 				}
 			}
@@ -188,24 +235,15 @@ class CactpotBoard {
 						if (i < j && j < k) {
 							tempSum = initSum + this.remaining[i] + this.remaining[j] + this.remaining[k];
 							totalScore += this.payout(tempSum);
+							probabilityMass = 6 / length / (length - 1) / (length - 2);
 						}
 					}
 				}
 			}
-			totalScore = 0.1 * totalScore;
+			totalScore = probabilityMass * totalScore;
 		}
 
 		return totalScore;
-	}
-
-	factorial(n) {
-	    //base case
-	    if(n == 0 || n == 1){
-	        return 1;
-	    //recursive case
-	    }else{
-	        return n * this.factorial(n-1);
-	    }
 	}
 
 	static get payoutArray() {
@@ -241,8 +279,12 @@ window.onload = function () {
 	}
 
 	document.getElementById("predict-score").onclick = function() {
-		if (game.revealed == 4) {
-			game.predictScore();
+		if (game.revealed < 4) {
+			let bestPos = game.predictScore().boxSuggest;
+			draw(null, bestPos, true);
+		} else if (game.revealed == 4) {
+			let bestLine = game.predictScore().lineSuggest;
+			draw(bestLine, null, true);
 		}
 	}
 }
@@ -315,26 +357,40 @@ function checkBoardInteract(posX, posY) {
 	draw(lineChoice, loc);
 }
 
-function draw(line, pos) {
-	if(line != null) {
-		if (game.revealed > 3) {
-			if (userLineChosen == false) {
-				drawLineBG(line);
-			}
-		}
-	}
-
-	drawBoard();
-
-	if (userLineChosen == false) {
+function draw(line, pos, isPrediction) {
+	// Highlight suggested next reveal or line choice
+	if (isPrediction != null) {
+		drawSuggest(line, pos);
+		drawBoard();
 		for (i = 0; i < game.boxTotal; i++) {
 			if (game.playerBoard[i] != 0) {
 				drawNumber(i);
 			}
 		}
 	} else {
-		for (i = 0; i < game.boxTotal; i++) {
-			drawNumber(i);
+		// Highlight the line chosen
+		if(line != null) {
+			if (game.revealed > 3) {
+				if (userLineChosen == false) {
+					drawLineBG(line);
+				}
+			}
+		}
+
+		// Draw the board (does not include numbers revealed)
+		drawBoard();
+
+		// Draw all revealed numbers. Else, once a line has been chosen, reveal the rest of the board
+		if (userLineChosen == false) {
+			for (i = 0; i < game.boxTotal; i++) {
+				if (game.playerBoard[i] != 0) {
+					drawNumber(i);
+				}
+			}
+		} else {
+			for (i = 0; i < game.boxTotal; i++) {
+				drawNumber(i);
+			}
 		}
 	}
 }
@@ -356,7 +412,7 @@ function drawBoard() {
 	let imageWidth = 60, imageHeight = 60;
 	var posX, posY;
 
-	// Draw arrows to choose lines for scoring
+	// Draw arrows within circles to choose lines for scoring
 	context.fillStyle = "Black";
 	centerY = initY;
 	for (i = 0; i < 5; i++) {
@@ -525,5 +581,43 @@ function drawLineBG(line) {
 		}
 
 		userLineChosen = true;
+	}
+}
+
+function drawSuggest(line, pos) {
+	console.log("DRAWING SUGGESTION...");
+	let initX = 100, initY = 100, rad = 50;
+	let centerX = null, centerY = null;
+	context.fillStyle = "#38ff6a";
+
+	if (pos != null) {
+		// get location of suggested next reveal
+		pos = game.predictScore().boxSuggest;
+		let i = pos % 3;
+		let j = Math.floor(pos/3);
+
+		// highlight suggested next reveal
+	    context.beginPath();
+	    centerX = (1 + 1.5 * (i+1)) * initX, centerY = (1 + 1.5 * (j+1)) * initY; // coords of circle center
+	    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
+	    context.fill();
+	}
+
+	if (line != null) {
+		let i = game.predictScore().lineSuggest;
+		console.log("line suggest", i)
+		if (i < 5) {
+			// highlight suggested next reveal
+		    context.beginPath();
+		    centerX = (1 + 1.5 * i) * initX, centerY = initY; // coords of circle center
+		    context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
+		    context.fill();
+		} else {
+			// highlight suggested next reveal
+		    context.beginPath();
+		    centerX = initX, centerY = (1 + 1.5 * (i-4)) * initY; // coords of circle center
+		    context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
+		    context.fill();
+		}
 	}
 }
