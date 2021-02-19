@@ -1,14 +1,116 @@
 <!DOCTYPE html>
 <html>
+<style>
+tr:nth-child(even) {
+  background-color: #bababa;
+}
+font-family: arial;
+</style>
 	<head>
-		<title>Mini-Cactpot</title>
-		<script src="cactpot.js"></script>
+		<title>Mini Cactpot</title>
+		<script src="cactpot.js";></script>
 	</head>
-	<body>
-		<h1>Mini-Cactpot</h1>
+	<body style="font-family: arial";>
+		<h1>FFXIV Mini Cactpot: Simulator and Solver</h1>
 		<p>Rules: The board consists of a 3x3 grid with the numbers 1-9 randomly assigned to a given location. One random location's number is initially revealed. Click on an unrevealed location to reveal the number for that spot. After you reveal 3 numbers (so that 4 numbers total are displayed), choose a row, column, or diagonal. Your score is the sum of the 3 numbers (including the hidden ones) in that chosen line.</p>
 		<button type="button" id="start-game">START NEW GAME</button>
-		<div></div>
-		<canvas id="cact-canvas" width=750 height=600></canvas>
+		<button type="button" id="predict-score">DISPLAY BEST LINE CHOICE</button>
+		<div id="user-score">Your score: </div>
+		<div style="width: 100%; overflow: hidden;">
+			<div style="width: 755px; float: left;">
+				<canvas id="cact-canvas"; width=755; height=610;></canvas>
+			</div>
+			<div style="margin-left: 900px; margin-top: 50px">
+				<table>
+					<thead>
+						<tr>
+							<th style="font-size:200%; width: 250px;", colspan="2";>Payout</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<th>Sum</th>
+							<th>MGP</th>
+						</tr>
+						<tr>
+							<td style="text-align:center">6</td>
+							<td style="text-align:center">10000</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">7</td>
+							<td style="text-align:center">36</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">8</td>
+							<td style="text-align:center">720</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">9</td>
+							<td style="text-align:center">360</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">10</td>
+							<td style="text-align:center">80</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">11</td>
+							<td style="text-align:center">252</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">12</td>
+							<td style="text-align:center">108</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">13</td>
+							<td style="text-align:center">72</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">14</td>
+							<td style="text-align:center">54</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">15</td>
+							<td style="text-align:center">180</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">16</td>
+							<td style="text-align:center">72</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">17</td>
+							<td style="text-align:center">180</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">18</td>
+							<td style="text-align:center">119</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">19</td>
+							<td style="text-align:center">36</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">20</td>
+							<td style="text-align:center">306</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">21</td>
+							<td style="text-align:center">1080</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">22</td>
+							<td style="text-align:center">144</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">23</td>
+							<td style="text-align:center">1800</td>
+						</tr>
+						<tr>
+							<td style="text-align:center">24</td>
+							<td style="text-align:center">3600</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 	</body>
 </html>

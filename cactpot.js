@@ -1,4 +1,26 @@
-let canvas, context, game, loc;
+let canvas, context, game, loc, userLineChosen, userScore, arrowImage;
+
+const payoutArray = {
+			6: 10000,
+			7: 36,
+			8: 720,
+			9: 360,
+			10: 80,
+			11: 252,
+			12: 108,
+			13: 72,
+			14: 54,
+			15: 180,
+			16: 72,
+			17: 180,
+			18: 119,
+			19: 36,
+			20: 306,
+			21: 1080,
+			22: 144,
+			23: 1800,
+			24: 3600
+		};
 
 class CactpotBoard {
 	constructor() {
@@ -8,6 +30,7 @@ class CactpotBoard {
 		this.playerBoard = Array(this.boxTotal).fill(0);
 		this.remaining = Array.from({length: 9}, (x, i) => i + 1);
 		this.revealed = 0;
+		this.firstBox = null;
 		this.startGame();
 	}
 
@@ -33,15 +56,10 @@ class CactpotBoard {
 	}
 
 	startGame() {
-		let firstBox = Math.floor(this.boxTotal * Math.random());
-		this.playerBoard[firstBox] = this.board[firstBox];
-		this.removeElement(this.remaining, this.playerBoard[firstBox]);
+		this.firstBox = Math.floor(this.boxTotal * Math.random());
+		this.playerBoard[this.firstBox] = this.board[this.firstBox];
+		this.removeElement(this.remaining, this.playerBoard[this.firstBox]);
 		this.revealed += 1;
-		console.log(firstBox, this.playerBoard[firstBox]);
-
-		// Need to display revealed number on page
-		this.drawNumber(firstBox);
-
 	}
 
 	removeElement(array, val) {
@@ -53,31 +71,17 @@ class CactpotBoard {
 		}
 	}
 
-	drawNumber(position) {
-		let i = position % 3;
-		let j = Math.floor(position/3);
-		let initX = 100, initY = 100;
-		let locX = (1 + 1.5 * (i+1)) * initX - 12, locY = (1 + 1.5 * (j+1)) * initY + 15;
-
-		context.fillStyle = "#000000";
-		context.font = "45px Arial";
-		var num = context.fillText(this.board[position], locX, locY);
-	}
-
 	numberReveal(position) {
-		// Make sure user has selected a valid location to reveal
-		if (this.revealed < 4) {
-			if (this.playerBoard[position] == 0) {
-				this.playerBoard[position] = this.board[position];
-				this.removeElement(this.remaining, this.playerBoard[position]);
-				this.revealed += 1;
-				this.drawNumber(position);
-			}
+		if (this.playerBoard[position] == 0) {
+			this.playerBoard[position] = this.board[position];
+			this.removeElement(this.remaining, this.playerBoard[position]);
+			this.revealed += 1;
 		}
 	}
 
 	scoreCalc(line) {
-		let sum = 0;
+		let trueSum = 0;
+		let playerSum = 0;
 		let emptyPosCount = 0; // track number of unrevealed positions for score prediction
 		var pos;
 
@@ -88,7 +92,8 @@ class CactpotBoard {
 				if (this.playerBoard[pos] == 0) {
 					emptyPosCount += 1;
 				}
-				sum += this.board[pos];
+				trueSum += this.board[pos];
+				playerSum += this.playerBoard[pos];
 			}
 		}
 
@@ -99,7 +104,8 @@ class CactpotBoard {
 				if (this.playerBoard[pos] == 0) {
 					emptyPosCount += 1;
 				}
-				sum += this.board[pos];
+				trueSum += this.board[pos];
+				playerSum += this.playerBoard[pos];
 			}
 		}
 		
@@ -111,7 +117,8 @@ class CactpotBoard {
 				if (this.playerBoard[pos] == 0) {
 					emptyPosCount += 1;
 				}
-				sum += this.board[pos];
+				trueSum += this.board[pos];
+				playerSum += this.playerBoard[pos];
 			}
 		}
 
@@ -120,15 +127,93 @@ class CactpotBoard {
 			let j = line - 5; // corresponds to which row it is
 			for (i = 0; i < 3; i++) {
 				pos = this.boardLength * j + i;
-				console.log("pos", pos);
 				if (this.playerBoard[pos] == 0) {
 					emptyPosCount += 1;
 				}
-				sum += this.board[pos];
+				trueSum += this.board[pos];
+				playerSum += this.playerBoard[pos];
 			}
 		}
 
-		return {'score': sum, 'emptyPosCount': emptyPosCount};
+		return {'playerSum': playerSum, 'score': this.payout(trueSum), 'emptyPosCount': emptyPosCount};
+	}
+
+	predictScore() {
+		let revealedSum = null;
+		let emptyPosCount = null;
+		let currentVal = 0;
+		let maxVal = 0;
+		let maxIndex = 0;
+
+		for (let k = 0; k < 8; k++) {
+			revealedSum = this.scoreCalc(k).playerSum;
+			emptyPosCount = this.scoreCalc(k).emptyPosCount;
+			currentVal = this.lineValue(revealedSum, emptyPosCount);
+			if (currentVal > maxVal) {
+				maxVal = currentVal;
+				maxIndex = k;
+			}
+		}
+
+		console.log("The best line choice is:", maxIndex);
+	}
+
+	lineValue(initSum, emptyCount) {
+		let totalScore = 0;
+		var tempSum;
+		let length = this.remaining.length;
+
+		if (emptyCount == 0) {
+			totalScore = this.payout(initSum);
+		} else if (emptyCount === 1) {
+			for (i = 0; i < length; i++) {
+				tempSum = initSum + this.remaining[i];
+				totalScore += this.payout(tempSum);
+			}
+			totalScore = totalScore / length;
+		} else if (emptyCount == 2) {
+			for (i = 0; i < length - 1; i++) {
+				for (j = 1; j < length; j++) {
+					if (i < j) {
+						tempSum = initSum + this.remaining[i] + this.remaining[j];
+						totalScore += this.payout(tempSum);
+					}
+				}
+			}
+			totalScore = 0.1 * totalScore;
+		} else if (emptyCount == 3) {
+			for (i = 0; i < length - 2; i++) {
+				for (j = 1; j < length - 1; j++) {
+					for (let k = 2; k < length; k++) {
+						if (i < j && j < k) {
+							tempSum = initSum + this.remaining[i] + this.remaining[j] + this.remaining[k];
+							totalScore += this.payout(tempSum);
+						}
+					}
+				}
+			}
+			totalScore = 0.1 * totalScore;
+		}
+
+		return totalScore;
+	}
+
+	factorial(n) {
+	    //base case
+	    if(n == 0 || n == 1){
+	        return 1;
+	    //recursive case
+	    }else{
+	        return n * this.factorial(n-1);
+	    }
+	}
+
+	static get payoutArray() {
+		return payoutArray;
+	}
+
+	payout(lineSum) {
+		return CactpotBoard.payoutArray[lineSum];
 	}
 }
 
@@ -139,15 +224,27 @@ window.onload = function () {
 
 	canvas.addEventListener("mousedown", mouseDownHandler);
 
-	drawBoard()
 	game = new CactpotBoard();
+	userLineChosen = false;
+
+	arrowImage = new Image();
+	arrowImage.src = "arrow.png";
+	arrowImage.onload = () => {
+		draw();
+	}
 
 	document.getElementById("start-game").onclick = function() {
 		context.clearRect(0, 0, canvas.width, canvas.height);
-		drawBoard();
 		game = new CactpotBoard();
+		userLineChosen = false;
+		draw();
 	}
 
+	document.getElementById("predict-score").onclick = function() {
+		if (game.revealed == 4) {
+			game.predictScore();
+		}
+	}
 }
 
 function mouseDownHandler(event) {
@@ -165,9 +262,8 @@ function mouseDownHandler(event) {
 }
 
 function checkBoardInteract(posX, posY) {
-	let initX = 100, initY = 100, rad = 50;
-	var lineChoice = null;
-	var loc = null;
+	let initX = 100, initY = 100, rad = 50; // (initX, initY) is the center of the initial circle.
+	var lineChoice = null, loc = null; // keep null until the user selects a scoring line or board location
 
 	// Check if click is on a line selector
 	centerY = initY;
@@ -198,55 +294,129 @@ function checkBoardInteract(posX, posY) {
 		    let dist = Math.sqrt(relX * relX + relY * relY);
 		    if (dist < rad) {
 		    	loc = 3 * j + i + 1;
-				console.log("loc: ", loc);
 		    }
 		}
 	}
 
-	if(lineChoice != null) {
+	if (loc != null && game.revealed < 4) {
+		loc = loc - 1;
+		game.numberReveal(loc);
+	}
+
+	if (lineChoice != null && game.revealed > 3 && userLineChosen == false) {
+		lineChoice = lineChoice - 1;
+		userScore = game.scoreCalc(lineChoice).score;
+
+		// Display score on page
+		scoreDisplay = document.getElementById("user-score");
+		scoreDisplay.innerHTML += userScore;
+	}
+
+	draw(lineChoice, loc);
+}
+
+function draw(line, pos) {
+	if(line != null) {
 		if (game.revealed > 3) {
-			console.log("lc", lineChoice-1)
-			let userScore = game.scoreCalc(lineChoice - 1).score;
-			console.log("score:", userScore);
-			for (i = 0; i < game.boxTotal; i++) {
-				if (game.playerBoard[i] == 0) {
-					game.drawNumber(i);
-				}
+			if (userLineChosen == false) {
+				drawLineBG(line);
 			}
 		}
-	} else if (loc != null) {
-		console.log("loc", loc);
-		game.numberReveal(loc - 1);
 	}
+
+	drawBoard();
+
+	if (userLineChosen == false) {
+		for (i = 0; i < game.boxTotal; i++) {
+			if (game.playerBoard[i] != 0) {
+				drawNumber(i);
+			}
+		}
+	} else {
+		for (i = 0; i < game.boxTotal; i++) {
+			drawNumber(i);
+		}
+	}
+}
+
+function drawNumber(position) {
+	let i = position % 3;
+	let j = Math.floor(position/3);
+	let initX = 100, initY = 100;
+	let locX = (1 + 1.5 * (i+1)) * initX - 12, locY = (1 + 1.5 * (j+1)) * initY + 15;
+
+	context.fillStyle = "#000000";
+	context.font = "45px Arial";
+	var num = context.fillText(game.board[position], locX, locY);
 }
 
 function drawBoard() {
 	let initX = 100, initY = 100, rad = 50;
+	var centerX, centerY;
+	let imageWidth = 60, imageHeight = 60;
+	var posX, posY;
 
 	// Draw arrows to choose lines for scoring
-	context.fillStyle = "Blue";
+	context.fillStyle = "Black";
 	centerY = initY;
 	for (i = 0; i < 5; i++) {
 		context.beginPath();
-		let centerX = (1 + 1.5 * i) * initX;
+		centerX = (1 + 1.5 * i) * initX;
 		context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
-		context.fill();
+		context.stroke();
+
+		// draw rotated arrow
+		if (i == 0) {
+			context.save();
+			posX = centerX - 0.5*imageWidth, posY = centerY - 0.5*imageHeight;
+			context.translate(centerX, centerY);
+			context.rotate(Math.PI / 4);
+			context.translate(-centerX, -centerY);
+			context.drawImage(arrowImage, posX, posY, imageWidth, imageHeight);
+			context.restore();
+		}
+
+		// draw rotated arrows
+		if (0 < i && i < 4) {
+			context.save();
+			posX = centerX - 0.5*imageWidth, posY = centerY - 0.5*imageHeight;
+			context.translate(centerX, centerY);
+			context.rotate(Math.PI / 2);
+			context.translate(-centerX, -centerY);
+			context.drawImage(arrowImage, posX, posY, imageWidth, imageHeight);
+			context.restore();
+		}
+
+		// draw rotated arrow
+		if (i == 4) {
+			context.save();
+			posX = centerX - 0.5*imageWidth, posY = centerY - 0.5*imageHeight;
+			context.translate(centerX, centerY);
+			context.rotate(3* Math.PI / 4);
+			context.translate(-centerX, -centerY);
+			context.drawImage(arrowImage, posX, posY, imageWidth, imageHeight);
+			context.restore();
+		}
 	}
 
 	centerX = initX;
 	for (i = 1; i < 4; i++) {
 		context.beginPath();
-		let centerY = (1 + 1.5 * i) * initY;
+		centerY = (1 + 1.5 * i) * initY;
 		context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
-		context.fill();
+		context.stroke();
+		
+		// draw arrow
+		posX = centerX - 0.5*imageWidth, posY = centerY - 0.5*imageHeight;
+		context.drawImage(arrowImage, posX, posY, imageWidth, imageHeight);
 	}
 
-	// Draw board of values
+	// Draw board for values
 	context.fillStyle = "#e3c34f";
 	for (i = 1; i < 4; i++) {
 		for (j = 1; j < 4; j++) {
 		    context.beginPath();
-		    let centerX = (1 + 1.5 * i) * initX, centerY = (1 + 1.5 * j) * initY; // coords of circle centers
+		    centerX = (1 + 1.5 * i) * initX, centerY = (1 + 1.5 * j) * initY; // coords of circle centers
 		    context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
 		    context.fill();
 		}
@@ -256,7 +426,7 @@ function drawBoard() {
 	for (i = 1; i < 4; i++) {
 		for (j = 1; j < 4; j++) {
 		    context.beginPath();
-		    let centerX = (1 + 1.5 * i) * initX, centerY = (1 + 1.5 * j) * initY; // coords of circle centers
+		    centerX = (1 + 1.5 * i) * initX, centerY = (1 + 1.5 * j) * initY; // coords of circle centers
 		    context.arc(centerX, centerY, 0.9*rad, 0, 2 * Math.PI);
 		    context.fill();
 		}
@@ -264,66 +434,96 @@ function drawBoard() {
 }
 
 function drawLineBG(line) {
-	let initX = 100, initY = 100, rad = 50;
-	var pos = null, i = null, j = null;
-	context.fillStyle = "#5edcff";
-
-	// for (i = 1; i < 4; i++) {
-	// 	for (j = 1; j < 4; j++) {
-	// 	    context.beginPath();
-	// 	    let centerX = (1 + 1.5 * i) * initX, centerY = (1 + 1.5 * j) * initY; // coords of circle centers
-	// 	    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
-	// 	    context.fill();
-	// 	}
-	// }
+	if (line != null) {
+		// Highlights background
+		let initX = 100, initY = 100, rad = 50;
+		let rectWidth = 3*initX, rectHeight = 110;
+		var pos = null, i = null, j = null;
+		context.fillStyle = "#5edcff";
 
 		// diagonal (top-left to bottom-right)
-	if (line == 0) {
-		for (i = 0; i < 3; i++) {
-			pos = this.boardLength * i + i;
-			i = position % 3;
-			j = Math.floor(position/3);
-			context.beginPath();
-		    let centerX = (1 + 1.5 * (i+1)) * initX, centerY = (1 + 1.5 * (j+1)) * initY; // coords of circle centers
-		    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
-		    context.fill();
+		if (line == 0) {
+			// Endcap circles
+			for (k = 0; k < 3; k += 2) {
+				pos = game.boardLength * k + k;
+				i = pos % 3;
+				j = Math.floor(pos/3);
+				context.beginPath();
+			    let centerX = (1 + 1.5 * (i+1)) * initX, centerY = (1 + 1.5 * (j+1)) * initY; // coords of circle centers
+			    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
+			    context.fill();
+			}
+
+			// Rotated rectangle
+			context.save();
+			rectWidth = 1.414*rectWidth;
+			let rectPosX = 4*initX - 0.5*rectWidth, rectPosY = 4*initY - 0.5*rectHeight;
+			context.translate(rectPosX + 0.5*rectWidth, rectPosY + 0.5*rectHeight);
+			context.rotate(Math.PI / 4);
+			context.translate(-rectPosX - 0.5*rectWidth, -rectPosY - 0.5*rectHeight);
+			context.fillRect(rectPosX, rectPosY, rectWidth, rectHeight);
+			context.restore();
 		}
+
+		// diagonal (top-right to bottom-left)
+		if (line == 4) {
+			// Endcap circles
+			for (k = 0; k < 3; k += 2) {
+				pos = game.boardLength * (k + 1) - k - 1;
+				i = pos % 3;
+				j = Math.floor(pos/3);
+				context.beginPath();
+			    let centerX = (1 + 1.5 * (i+1)) * initX, centerY = (1 + 1.5 * (j+1)) * initY; // coords of circle centers
+			    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
+			    context.fill();
+			}
+
+			// Rotated rectangle
+			context.save();
+			rectWidth = 1.414*rectWidth;
+			let rectPosX = 4*initX - 0.5*rectWidth, rectPosY = 4*initY - 0.5*rectHeight;
+			context.translate(rectPosX + 0.5*rectWidth, rectPosY + 0.5*rectHeight);
+			context.rotate(-Math.PI / 4);
+			context.translate(-rectPosX - 0.5*rectWidth, -rectPosY - 0.5*rectHeight);
+			context.fillRect(rectPosX, rectPosY, rectWidth, rectHeight);
+			context.restore();
+		}
+
+		// columns
+		if (0 < line && line < 4) {
+		// Endcap circles
+			for (k = 0; k < 3; k += 2) {
+				i = line - 1; // corresponds to which column it is
+				pos = i + game.boardLength * j;
+				context.beginPath();
+			    let centerX = (1 + 1.5 * (i+1)) * initX, centerY = (1 + 1.5 * (k+1)) * initY; // coords of circle centers
+			    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
+			    context.fill();
+
+			    if (k == 0) {
+	    			// Rotated rectangle
+					context.fillRect(centerX - 0.5 * rectHeight, centerY, rectHeight, rectWidth);
+			    }
+			}
+		}
+
+		// rows
+		if (line > 4) {
+		// Endcap circles
+			for (k = 0; k < 3; k += 2) {
+				j = line - 5; // corresponds to which column it is
+				context.beginPath();
+			    let centerX = (1 + 1.5 * (k+1)) * initX, centerY = (1 + 1.5 * (j+1)) * initY; // coords of circle centers
+			    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
+			    context.fill();
+
+			    if (k == 0) {
+	    			// Rotated rectangle
+					context.fillRect(centerX, centerY - 0.5*rectHeight, rectWidth, rectHeight);
+			    }
+			}
+		}
+
+		userLineChosen = true;
 	}
-
-	// // diagonal (top-right to bottom-left)
-	// if (line == 4) {
-	// for (i = 0; i < 3; i++) {
-	// 		pos = this.boardLength * (i + 1) - i - 1;
-	// 		if (this.playerBoard[pos] == 0) {
-	// 			emptyPosCount += 1;
-	// 		}
-	// 		sum += this.board[pos];
-	// 	}
-	// }
-	
-	// // columns
-	// if (0 < line && line < 4) {
-	// 	let i = line - 1; // corresponds to which column it is
-	// 	for (j = 0; j < 3; j++) {
-	// 		pos = i + this.boardLength * j;
-	// 		if (this.playerBoard[pos] == 0) {
-	// 			emptyPosCount += 1;
-	// 		}
-	// 		sum += this.board[pos];
-	// 	}
-	// }
-
-	// // rows
-	// if (4 < line) {
-	// 	let j = line - 5; // corresponds to which row it is
-	// 	for (i = 0; i < 3; i++) {
-	// 		pos = this.boardLength * j + i;
-	// 		console.log("pos", pos);
-	// 		if (this.playerBoard[pos] == 0) {
-	// 			emptyPosCount += 1;
-	// 		}
-	// 		sum += this.board[pos];
-	// 	}
-	// }
-
 }
