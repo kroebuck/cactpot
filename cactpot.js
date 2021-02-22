@@ -187,7 +187,7 @@ class CactpotBoard {
 		// Find which box is the best to uncover next, or say which line is best
 		if (this.revealed < 4) {
 			for (i = 0; i < this.nextRevealScore.length; i++) {
-				// console.log("pos, score", i+1, this.nextRevealScore[i]);
+				console.log("pos, score", i+1, this.nextRevealScore[i]);
 				if (this.nextRevealScore[i] > maxBoxVal) {
 					if (this.playerBoard[i] == 0) {
 						maxBoxVal = this.nextRevealScore[i];
@@ -246,9 +246,24 @@ class CactpotBoard {
 		return totalScore;
 	}
 
-	static get payoutArray() {
-		return payoutArray;
-	}
+	// nextFlip(initSum, emptyCount) {
+	// 	ids = []; // locations of unrevealed tiles
+
+	// 	// Find unrevealed tiles and store location in 'ids'
+	// 	for (i = 0; i < this.boxTotal; i++) {
+	// 		if (this.playerBoard[i] == 0) {
+	// 			ids.push(0);
+	// 		}
+	// 	}
+
+	// 	for (i = 0; i < this.remaining.length, i++) {
+			
+	// 	}
+	// }
+
+	// static get payoutArray() {
+	// 	return payoutArray;
+	// }
 
 	payout(lineSum) {
 		return CactpotBoard.payoutArray[lineSum];
@@ -585,14 +600,12 @@ function drawLineBG(line) {
 }
 
 function drawSuggest(line, pos) {
-	console.log("DRAWING SUGGESTION...");
 	let initX = 100, initY = 100, rad = 50;
 	let centerX = null, centerY = null;
 	context.fillStyle = "#38ff6a";
 
 	if (pos != null) {
 		// get location of suggested next reveal
-		pos = game.predictScore().boxSuggest;
 		let i = pos % 3;
 		let j = Math.floor(pos/3);
 
@@ -601,21 +614,19 @@ function drawSuggest(line, pos) {
 	    centerX = (1 + 1.5 * (i+1)) * initX, centerY = (1 + 1.5 * (j+1)) * initY; // coords of circle center
 	    context.arc(centerX, centerY, 1.1*rad, 0, 2 * Math.PI);
 	    context.fill();
-	}
+	} 
 
 	if (line != null) {
-		let i = game.predictScore().lineSuggest;
-		console.log("line suggest", i)
-		if (i < 5) {
+		if (line < 5) {
 			// highlight suggested next reveal
 		    context.beginPath();
-		    centerX = (1 + 1.5 * i) * initX, centerY = initY; // coords of circle center
+		    centerX = (1 + 1.5 * line) * initX, centerY = initY; // coords of circle center
 		    context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
 		    context.fill();
 		} else {
 			// highlight suggested next reveal
 		    context.beginPath();
-		    centerX = initX, centerY = (1 + 1.5 * (i-4)) * initY; // coords of circle center
+		    centerX = initX, centerY = (1 + 1.5 * (line-4)) * initY; // coords of circle center
 		    context.arc(centerX, centerY, rad, 0, 2 * Math.PI);
 		    context.fill();
 		}
